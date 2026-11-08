@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ASL browser speech</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: transparent;
+        color: #b7c8df;
+        font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      #status { padding: 4px 2px; }
+      .speaking { color: #79e0b5; }
+      .muted { color: #98a7bc; }
+      .error { color: #ff9a9a; }
+    </style>
+  </head>
+  <body>
+    <div id="status" role="status">Voice ready</div>
+    <script src="speech.js"></script>
+  </body>
+</html>

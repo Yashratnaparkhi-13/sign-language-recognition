@@ -1,0 +1,6 @@
+streamlit==1.52.2
+streamlit-webrtc==0.79.1
+torch==2.8.0
+mediapipe==1.2.0
+opencv-python-headless==4.11.0.86
+numpy==2.2.2
