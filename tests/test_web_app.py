@@ -35,6 +35,21 @@ class FakeClassifier:
 
 
 class WebStateTests(unittest.TestCase):
+    def test_streamlit_dependencies_include_mediapipe_opencv_runtime(self) -> None:
+        for requirements_path in (
+            PROJECT_ROOT / "requirements.txt",
+            PROJECT_ROOT / "web_app" / "requirements.txt",
+        ):
+            requirements = requirements_path.read_text(encoding="utf-8")
+            self.assertIn("opencv-contrib-python==4.11.0.86", requirements)
+            self.assertNotIn("opencv-python-headless", requirements)
+
+        system_packages = (PROJECT_ROOT / "packages.txt").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("libgl1", system_packages.splitlines())
+        self.assertIn("libglib2.0-0", system_packages.splitlines())
+
     def test_existing_model_mapping_and_asset_paths(self) -> None:
         self.assertEqual(len(EXPECTED_CLASSES), 28)
         self.assertEqual(EXPECTED_CLASSES[:26], tuple("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))

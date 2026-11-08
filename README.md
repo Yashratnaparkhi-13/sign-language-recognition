@@ -76,6 +76,9 @@ grant the browser camera permission.
 4. Deploy and open the resulting HTTPS URL.
 5. Grant browser camera permission.
 
+The deployment includes the Linux runtime libraries required by MediaPipe's
+OpenCV contrib dependency.
+
 The WebRTC configuration uses a public STUN server by default. Some firewalls
 and hosted networks require TURN. If needed, add these environment variables
 to the app's secrets/configuration:
