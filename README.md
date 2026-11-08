@@ -29,7 +29,7 @@ speaks completed words on the computer running the app.
 
 ## Web app — run locally
 
-Python 3.11 is recommended for the web deployment dependency set.
+Python 3.12 is recommended for the web deployment dependency set.
 
 ```bash
 python -m venv .venv-web
@@ -69,8 +69,10 @@ grant the browser camera permission.
 ## Deploy the web app on Streamlit Community Cloud
 
 1. Create a Community Cloud app from this GitHub repository.
-2. Select branch `main` and main file `web_app/app.py`.
-3. Use Python 3.11 if prompted.
+2. Select branch `main` and main file `web_app/app.py` (not
+   `webcam_landmark_v2.py`, which launches the desktop application).
+3. In **Advanced settings**, select Python 3.12. The pinned PyTorch version
+   does not provide wheels for Python 3.14.
 4. Deploy and open the resulting HTTPS URL.
 5. Grant browser camera permission.
 
