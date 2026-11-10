@@ -90,6 +90,14 @@ username = "your-turn-username"
 credential = "your-turn-credential"
 ```
 
+For Cloudflare Realtime TURN, add the provider-issued root-level secrets
+instead; `streamlit-webrtc` will request short-lived ICE credentials:
+
+```toml
+CLOUDFLARE_TURN_KEY_ID = "your-turn-key-id"
+CLOUDFLARE_TURN_KEY_API_TOKEN = "your-turn-api-token"
+```
+
 Never commit TURN credentials. On restrictive networks, verify the hosted
 camera connection over HTTPS; localhost testing does not verify public
 WebRTC connectivity.

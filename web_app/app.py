@@ -146,25 +146,69 @@ def main() -> None:
         st.session_state.model_error = str(error)
         LOGGER.exception("Could not load the ASL model")
 
-    ice_servers = [{"urls": [os.getenv("ASL_STUN_URL", "stun:stun.l.google.com:19302")]}]
     try:
-        turn_secrets = st.secrets.get("turn", {})
+        app_secrets = st.secrets
     except StreamlitSecretNotFoundError:
-        turn_secrets = {}
+        app_secrets = {}
+
+    provider_secret_names = (
+        "CLOUDFLARE_TURN_KEY_ID",
+        "CLOUDFLARE_TURN_KEY_API_TOKEN",
+        "HF_TOKEN",
+    )
+    for name in provider_secret_names:
+        secret_value = app_secrets.get(name)
+        if secret_value and not os.getenv(name):
+            os.environ[name] = str(secret_value)
+
+    turn_secrets = app_secrets.get("turn", {})
     turn_url = os.getenv("ASL_TURN_URL") or turn_secrets.get("url")
     turn_username = os.getenv("ASL_TURN_USERNAME") or turn_secrets.get("username")
     turn_credential = os.getenv("ASL_TURN_CREDENTIAL") or turn_secrets.get(
         "credential"
     )
-    if turn_url and turn_username and turn_credential:
-        ice_servers.append(
+    manual_turn_values = (turn_url, turn_username, turn_credential)
+    manual_turn_configured = all(manual_turn_values)
+    manual_turn_incomplete = any(manual_turn_values) and not manual_turn_configured
+
+    cloudflare_credentials = (
+        os.getenv("CLOUDFLARE_TURN_KEY_ID")
+        or app_secrets.get("CLOUDFLARE_TURN_KEY_ID"),
+        os.getenv("CLOUDFLARE_TURN_KEY_API_TOKEN")
+        or app_secrets.get("CLOUDFLARE_TURN_KEY_API_TOKEN"),
+    )
+    hf_token = os.getenv("HF_TOKEN")
+    provider_credentials = (cloudflare_credentials, (hf_token,))
+    provider_turn_configured = any(all(pair) for pair in provider_credentials)
+    provider_turn_incomplete = any(
+        any(pair) and not all(pair) for pair in provider_credentials
+    )
+    turn_configured = manual_turn_configured or provider_turn_configured
+    turn_incomplete = not turn_configured and (
+        manual_turn_incomplete or provider_turn_incomplete
+    )
+
+    rtc_configuration = None
+    if manual_turn_configured:
+        ice_servers = [
+            {
+                "urls": [
+                    os.getenv("ASL_STUN_URL", "stun:stun.l.google.com:19302")
+                ]
+            },
             {
                 "urls": [turn_url],
                 "username": turn_username,
                 "credential": turn_credential,
-            }
-        )
-    rtc_configuration = RTCConfiguration({"iceServers": ice_servers})
+            },
+        ]
+        rtc_configuration = RTCConfiguration({"iceServers": ice_servers})
+    elif not provider_turn_configured:
+        custom_stun_url = os.getenv("ASL_STUN_URL")
+        if custom_stun_url:
+            rtc_configuration = RTCConfiguration(
+                {"iceServers": [{"urls": [custom_stun_url]}]}
+            )
     if classifier is None:
         st.error(f"Model unavailable: {st.session_state.model_error}")
     if not TASK_PATH.is_file():
@@ -295,8 +339,13 @@ def main() -> None:
         model_status = "READY" if not st.session_state.model_error else "ERROR"
         voice_status = "ON" if st.session_state.voice_enabled else "OFF"
         if desired and not camera_connected:
-            camera_status = "WAITING"
+            camera_status = (
+                "NEGOTIATING"
+                if context and context.state.signalling
+                else "WAITING"
+            )
             recognition_status = "STARTING"
+        turn_status = "CONFIGURED" if turn_configured else "NOT CONFIGURED"
 
         system_status_slot.markdown(
             '<div class="status-row">'
@@ -304,9 +353,11 @@ def main() -> None:
             f'<span class="badge">Model · {model_status}</span>'
             f'<span class="badge">Recognition · {recognition_status}</span>'
             f'<span class="badge">Voice · {voice_status}</span>'
+            f'<span class="badge">TURN · {turn_status}</span>'
             "</div>",
             unsafe_allow_html=True,
         )
+        st.caption(f"Frames received and processed: {current.processed_frames}")
         if current.current_class == "space":
             shown_sign = "SPACE"
         elif current.current_class == "del":
@@ -343,10 +394,24 @@ def main() -> None:
         elif desired and not camera_connected and st.session_state.get(
             "camera_start_time", 0
         ) and time.monotonic() - st.session_state.camera_start_time > 10:
-            error_slot.warning(
-                "Camera has not connected. Check browser camera permission, "
-                "camera availability, and network/WebRTC access."
-            )
+            if turn_incomplete:
+                error_slot.warning(
+                    "Camera has not connected. TURN settings are incomplete; "
+                    "configure url, username, and credential under [turn] in "
+                    "Streamlit Secrets."
+                )
+            elif not turn_configured:
+                error_slot.warning(
+                    "Camera has not connected and no TURN credentials were "
+                    "loaded. Add url, username, and credential under [turn] "
+                    "in Streamlit Secrets; STUN alone may be blocked."
+                )
+            else:
+                error_slot.warning(
+                    "Camera has not connected although TURN settings were "
+                    "loaded. Verify the TURN provider URL, port, and credentials "
+                    "in Streamlit Secrets."
+                )
         else:
             error_slot.empty()
 

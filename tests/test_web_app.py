@@ -198,6 +198,15 @@ class WebStateTests(unittest.TestCase):
         self.assertIn("video_receiver_size=1", app_source)
         self.assertIn('"frameRate": {"ideal": 24, "max": 30}', app_source)
 
+    def test_cloudflare_turn_secrets_use_library_ice_discovery(self) -> None:
+        app_source = (PROJECT_ROOT / "web_app" / "app.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("CLOUDFLARE_TURN_KEY_ID", app_source)
+        self.assertIn("CLOUDFLARE_TURN_KEY_API_TOKEN", app_source)
+        self.assertIn("rtc_configuration = None", app_source)
+        self.assertIn("rtc_configuration=rtc_configuration", app_source)
+
 
 if __name__ == "__main__":
     unittest.main()
