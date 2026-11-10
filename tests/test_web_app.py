@@ -49,6 +49,7 @@ class WebStateTests(unittest.TestCase):
         )
         self.assertIn("libgl1", system_packages.splitlines())
         self.assertIn("libglib2.0-0", system_packages.splitlines())
+        self.assertIn("libgles2", system_packages.splitlines())
 
     def test_existing_model_mapping_and_asset_paths(self) -> None:
         self.assertEqual(len(EXPECTED_CLASSES), 28)
